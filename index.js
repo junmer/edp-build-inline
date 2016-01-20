@@ -30,28 +30,6 @@ function extend(target) {
     return target;
 }
 
-/**
- * 获取文件内容
- *
- * @param  {Object} processContext 构建环境对象
- * @param  {string} path           文件路径
- * @return {string}                内容
- */
-function getFileData(processContext, path) {
-
-    var fileInfo = processContext.getFileByPath(path);
-
-    if (fileInfo && fileInfo.data) {
-        return fileInfo.data;
-    }
-
-    var errMsg = 'inline file: ' + path + ' not found';
-
-    this.log.fatal(errMsg);
-
-    throw new Error(errMsg);
-
-}
 
 /**
  * 替换标签内容
@@ -153,6 +131,13 @@ inline.process = function (file, processContext, callback) {
 
     var output = file.data;
 
+    var log = this.log;
+
+    var errLog = function (path) {
+        var msg = 'inline file:' + path + ' not found';
+        log.fatal(msg);
+    };
+
     this.replacements.forEach(function (item) {
 
         output = replaceTag(
@@ -160,14 +145,33 @@ inline.process = function (file, processContext, callback) {
             item.tag,
             item.attribute,
             item.condition,
-            item.replacer(processContext)
+            item.replacer(processContext, errLog)
         );
+
     });
 
     file.setData(output);
 
     callback();
 };
+
+
+/**
+ * 获取文件内容
+ *
+ * @param  {Object} processContext 构建环境对象
+ * @param  {string} path           文件路径
+ * @return {string}                内容
+ */
+function resource(processContext, path) {
+
+    var fileInfo = processContext.getFileByPath(path);
+
+    if (fileInfo && fileInfo.data) {
+        return fileInfo.data;
+    }
+
+}
 
 /**
  * inline 处理器
@@ -176,13 +180,6 @@ inline.process = function (file, processContext, callback) {
  * @param {Object} options 初始化参数
  */
 function InlineReplacer(options) {
-
-    /**
-     * 获取资源
-     *
-     * @type {Function}
-     */
-    var resource = getFileData.bind(this);
 
     return extend({}, inline, {
         condition: isInlineTag,
@@ -193,9 +190,19 @@ function InlineReplacer(options) {
                 condition: function (tagSource) {
                     return isInlineTag(tagSource) && isStylesheet(tagSource);
                 },
-                replacer: function (processContext) {
+                replacer: function (processContext, errLog) {
                     return function (path) {
-                        return '<style>' + resource(processContext, path) + '</style>';
+
+                        // inline
+                        var content = resource(processContext, path);
+                        if (content) {
+                            return '<style>' + content + '</style>';
+                        }
+
+                        // link
+                        errLog(path);
+                        return '<link rel="stylesheet" href="' + path + '">';
+
                     };
                 }
             },
@@ -203,9 +210,19 @@ function InlineReplacer(options) {
                 tag: 'script',
                 attribute: 'src',
                 condition: isInlineTag,
-                replacer: function (processContext) {
+                replacer: function (processContext, errLog) {
                     return function (path) {
-                        return '<script>' + resource(processContext, path);
+
+                        // inline
+                        var content = resource(processContext, path);
+                        if (content) {
+                            return '<script>' + content;
+                        }
+
+                        // src
+                        errLog(path);
+                        return '<script src="' + path + '">';
+
                     };
                 }
             }
