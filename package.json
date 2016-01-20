@@ -1,0 +1,22 @@
+{
+  "name": "edp-build-inline",
+  "version": "0.0.1",
+  "description": "edp-build inline",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/junmer/edp-build-inline.git"
+  },
+  "files": ["index.js"],
+  "keywords": [
+    "edp",
+    "build",
+    "inline"
+  ],
+  "author": "junmer",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/junmer/edp-build-inline/issues"
+  },
+  "homepage": "https://github.com/junmer/edp-build-inline"
+}
